@@ -1,24 +1,30 @@
 package com.almoxarifado.almoxarifado_backend.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
 public class Retirada {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id; // PK
 
-    private LocalDateTime dataHora;
+    private LocalDateTime dataHora = LocalDateTime.now();
+
+    @Column(nullable = false)
     private String responsavel;   
+
     private String destino;      
+
+    @Column(nullable = false)
     private Integer quantidadeRetirada;
 
-    // Relacionamentos
-
-    // N : 1
-    @ManyToOne
-    @JoinColumn(name = "produto_id") // Relaciona FK no banco
+    // N:1
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "produto_id", nullable = false)
+    @JsonBackReference
     private Produto produto;
 
     // Getters e Setters
@@ -39,5 +45,4 @@ public class Retirada {
 
     public Produto getProduto() { return produto; }
     public void setProduto(Produto produto) { this.produto = produto; }
-
 }

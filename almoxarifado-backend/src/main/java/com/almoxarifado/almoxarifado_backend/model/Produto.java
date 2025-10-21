@@ -1,34 +1,40 @@
 package com.almoxarifado.almoxarifado_backend.model;
 
 import java.util.List;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+import jakarta.persistence.*;
 
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.OneToMany;
-
-@Entity //Classe que ira para uma tabela no DB
+@Entity // Classe que vira tabela no banco
 public class Produto {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY) // Auto-Increment
+    @GeneratedValue(strategy = GenerationType.IDENTITY) // Auto-increment
     private Long id; // PK
+
+    @Column(nullable = false, unique = true) 
     private String nome;
-    private Integer quantidade;
+
+    @Column(nullable = false)
+    private Integer quantidade = 0;
+
     private String descricao;
+
+    @Column(nullable = false)
     private String categoria;
+
+    @Column(nullable = false)
     private String prateleira;
-    private Integer estoqueMinimo;
+
+    @Column(nullable = false)
+    private Integer estoqueMinimo = 0;
 
     // Relacionamentos
-
-    // 1 : N
-    @OneToMany(mappedBy = "produto", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "produto", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
     private List<Entrada> entradas;
-    
-    @OneToMany(mappedBy = "produto", cascade = CascadeType.ALL)
+
+    @OneToMany(mappedBy = "produto", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
     private List<Retirada> retiradas;
 
     // Getters e Setters
@@ -52,4 +58,10 @@ public class Produto {
 
     public Integer getEstoqueMinimo() { return estoqueMinimo; }
     public void setEstoqueMinimo(Integer estoqueMinimo) { this.estoqueMinimo = estoqueMinimo; }
+
+    public List<Entrada> getEntradas() { return entradas; }
+    public void setEntradas(List<Entrada> entradas) { this.entradas = entradas; }
+
+    public List<Retirada> getRetiradas() { return retiradas; }
+    public void setRetiradas(List<Retirada> retiradas) { this.retiradas = retiradas; }
 }
