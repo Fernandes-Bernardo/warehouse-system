@@ -198,6 +198,6 @@ public class MovimentacaoController {
         int end = Math.min(start + pageable.getPageSize(), resumo.size());
         List<ResumoProdutoDTO> pageContent = resumo.subList(start, end);
 
-        return new PageImpl<>(pageContent, pageable, resumo.size());
+        return new PageImpl<>(pageContent, pageable, resumo.size()); //
     }
 }
