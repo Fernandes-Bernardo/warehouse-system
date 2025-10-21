@@ -1,21 +1,16 @@
 package com.almoxarifado.almoxarifado_backend.controller;
 
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
-import org.springframework.web.bind.annotation.*;
-
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-
 import com.almoxarifado.almoxarifado_backend.dto.MovimentacaoDTO;
 import com.almoxarifado.almoxarifado_backend.dto.ResumoProdutoDTO;
 import com.almoxarifado.almoxarifado_backend.model.Entrada;
 import com.almoxarifado.almoxarifado_backend.model.Produto;
 import com.almoxarifado.almoxarifado_backend.model.Retirada;
 import com.almoxarifado.almoxarifado_backend.repository.ProdutoRepository;
+import org.springframework.data.domain.*;
+import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDateTime;
+import java.util.*;
 
 @RestController
 @RequestMapping("/api/v1/movimentacoes")
@@ -27,7 +22,6 @@ public class MovimentacaoController {
         this.produtoRepository = produtoRepository;
     }
 
-    // Histórico geral de movimentações (entradas + retiradas) com paginação
     @GetMapping
     public Page<MovimentacaoDTO> listarMovimentacoes(
             @RequestParam(required = false) String ordenacao,
@@ -37,12 +31,13 @@ public class MovimentacaoController {
             @RequestParam(required = false) String dataInicio,
             @RequestParam(required = false) String dataFim,
             @RequestParam(required = false) String destino,
+            @RequestParam(required = false) Long produtoId,
             Pageable pageable) {
 
         List<MovimentacaoDTO> movimentacoes = new ArrayList<>();
 
-        // Percorre todos os produtos e junta entradas + retiradas
         for (Produto produto : produtoRepository.findAll()) {
+            if (produtoId != null && !produto.getId().equals(produtoId)) continue;
 
             for (Entrada entrada : produto.getEntradas()) {
                 movimentacoes.add(new MovimentacaoDTO(
@@ -77,7 +72,6 @@ public class MovimentacaoController {
             }
         }
 
-        // Filtros
         if (tipo != null && !tipo.isBlank()) {
             movimentacoes.removeIf(m -> !m.getTipo().equalsIgnoreCase(tipo));
         }
@@ -111,22 +105,32 @@ public class MovimentacaoController {
             movimentacoes.removeIf(m -> m.getDataHora().isBefore(inicio) || m.getDataHora().isAfter(fim));
         }
 
-        // Ordenação
-        if ("desc".equalsIgnoreCase(ordenacao)) {
+        if (pageable.getSort().isSorted()) {
+            for (Sort.Order order : pageable.getSort()) {
+                Comparator<MovimentacaoDTO> comparator = switch (order.getProperty()) {
+                    case "dataHora" -> Comparator.comparing(MovimentacaoDTO::getDataHora);
+                    case "tipo" -> Comparator.comparing(MovimentacaoDTO::getTipo, Comparator.nullsLast(String::compareToIgnoreCase));
+                    case "responsavel" -> Comparator.comparing(MovimentacaoDTO::getResponsavel, Comparator.nullsLast(String::compareToIgnoreCase));
+                    case "produtoNome" -> Comparator.comparing(MovimentacaoDTO::getProdutoNome, Comparator.nullsLast(String::compareToIgnoreCase));
+                    default -> null;
+                };
+                if (comparator != null) {
+                    movimentacoes.sort(order.isAscending() ? comparator : comparator.reversed());
+                }
+            }
+        } else if ("desc".equalsIgnoreCase(ordenacao)) {
             movimentacoes.sort(Comparator.comparing(MovimentacaoDTO::getDataHora).reversed());
         } else {
             movimentacoes.sort(Comparator.comparing(MovimentacaoDTO::getDataHora));
         }
 
-        // Paginação manual
         int start = (int) pageable.getOffset();
-        int end = Math.min((start + pageable.getPageSize()), movimentacoes.size());
+        int end = Math.min(start + pageable.getPageSize(), movimentacoes.size());
         List<MovimentacaoDTO> pageContent = movimentacoes.subList(start, end);
 
         return new PageImpl<>(pageContent, pageable, movimentacoes.size());
     }
 
-    // Histórico apenas de movimentações críticas (estoque abaixo do mínimo)
     @GetMapping("/criticas")
     public Page<MovimentacaoDTO> listarMovimentacoesCriticas(
             @RequestParam(required = false) String ordenacao,
@@ -136,10 +140,11 @@ public class MovimentacaoController {
             @RequestParam(required = false) String dataInicio,
             @RequestParam(required = false) String dataFim,
             @RequestParam(required = false) String destino,
+            @RequestParam(required = false) Long produtoId,
             Pageable pageable) {
 
         Page<MovimentacaoDTO> todas = listarMovimentacoes(
-                ordenacao, tipo, responsavel, periodo, dataInicio, dataFim, destino, pageable);
+                ordenacao, tipo, responsavel, periodo, dataInicio, dataFim, destino, produtoId, pageable);
 
         List<MovimentacaoDTO> criticas = todas.getContent().stream()
                 .filter(MovimentacaoDTO::isEstoqueBaixo)
@@ -148,7 +153,6 @@ public class MovimentacaoController {
         return new PageImpl<>(criticas, pageable, criticas.size());
     }
 
-    // Relatório resumido de todos os produtos
     @GetMapping("/resumo")
     public Page<ResumoProdutoDTO> listarResumoProdutos(Pageable pageable) {
         List<ResumoProdutoDTO> resumo = new ArrayList<>();
@@ -165,13 +169,12 @@ public class MovimentacaoController {
         }
 
         int start = (int) pageable.getOffset();
-        int end = Math.min((start + pageable.getPageSize()), resumo.size());
+        int end = Math.min(start + pageable.getPageSize(), resumo.size());
         List<ResumoProdutoDTO> pageContent = resumo.subList(start, end);
 
         return new PageImpl<>(pageContent, pageable, resumo.size());
     }
 
-    // Relatório resumido apenas com produtos críticos
     @GetMapping("/resumo/criticos")
     public Page<ResumoProdutoDTO> listarResumoProdutosCriticos(Pageable pageable) {
         List<ResumoProdutoDTO> resumo = new ArrayList<>();
@@ -192,9 +195,9 @@ public class MovimentacaoController {
         }
 
         int start = (int) pageable.getOffset();
-        int end = Math.min((start + pageable.getPageSize()), resumo.size());
+        int end = Math.min(start + pageable.getPageSize(), resumo.size());
         List<ResumoProdutoDTO> pageContent = resumo.subList(start, end);
-        
+
         return new PageImpl<>(pageContent, pageable, resumo.size());
     }
 }
