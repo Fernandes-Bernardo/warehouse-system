@@ -57,8 +57,7 @@ public class MovimentacaoController {
                         produto.getPrateleira(),
                         produto.getOrigem(),
                         produto.getQuantidade(),
-                        produto.getEstoqueMinimo()
-                ));
+                        produto.getEstoqueMinimo()));
             }
 
             for (Retirada retirada : produto.getRetiradas()) {
@@ -74,8 +73,7 @@ public class MovimentacaoController {
                         produto.getPrateleira(),
                         produto.getOrigem(),
                         produto.getQuantidade(),
-                        produto.getEstoqueMinimo()
-                ));
+                        produto.getEstoqueMinimo()));
             }
         }
 
@@ -163,8 +161,7 @@ public class MovimentacaoController {
                     produto.getPrateleira(),
                     produto.getOrigem(),
                     produto.getQuantidade(),
-                    produto.getEstoqueMinimo()
-            ));
+                    produto.getEstoqueMinimo()));
         }
 
         int start = (int) pageable.getOffset();
@@ -187,8 +184,7 @@ public class MovimentacaoController {
                     produto.getPrateleira(),
                     produto.getOrigem(),
                     produto.getQuantidade(),
-                    produto.getEstoqueMinimo()
-            );
+                    produto.getEstoqueMinimo());
 
             if (dto.isEstoqueBaixo()) {
                 resumo.add(dto);
@@ -198,7 +194,7 @@ public class MovimentacaoController {
         int start = (int) pageable.getOffset();
         int end = Math.min((start + pageable.getPageSize()), resumo.size());
         List<ResumoProdutoDTO> pageContent = resumo.subList(start, end);
-
+        
         return new PageImpl<>(pageContent, pageable, resumo.size());
     }
 }
