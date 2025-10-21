@@ -2,15 +2,9 @@ package com.almoxarifado.almoxarifado_backend.controller;
 
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 
-import com.almoxarifado.almoxarifado_backend.dto.MovimentacaoDTO;
-import com.almoxarifado.almoxarifado_backend.model.Entrada;
 import com.almoxarifado.almoxarifado_backend.model.Produto;
-import com.almoxarifado.almoxarifado_backend.model.Retirada;
 import com.almoxarifado.almoxarifado_backend.repository.ProdutoRepository;
 
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -25,7 +19,7 @@ public class ProdutoController {
         this.repository = repository;
     }
 
-    // Deletar todos os produtos (limpeza geral)
+    // Deletar todos os produtos
     @DeleteMapping("/limpar")
     @PreAuthorize("hasRole('ADMIN')")
     public void limparTudo() {
@@ -73,6 +67,43 @@ public class ProdutoController {
                 .toList();
     }
 
+    // Buscar produtos com filtros opcionais
+    @GetMapping("/filtro")
+    public List<Produto> filtrarProdutos(
+            @RequestParam(required = false) String categoria,
+            @RequestParam(required = false) String origem,
+            @RequestParam(required = false) String nome) {
+
+        // Começa com todos os produtos
+        List<Produto> produtos = repository.findAll();
+
+        // Filtro por categoria
+        if (categoria != null && !categoria.isBlank()) {
+            produtos = produtos.stream()
+                    .filter(p -> p.getCategoria() != null &&
+                            p.getCategoria().equalsIgnoreCase(categoria))
+                    .toList();
+        }
+
+        // Filtro por origem
+        if (origem != null && !origem.isBlank()) {
+            produtos = produtos.stream()
+                    .filter(p -> p.getOrigem() != null &&
+                            p.getOrigem().equalsIgnoreCase(origem))
+                    .toList();
+        }
+
+        // Filtro por nome (contém)
+        if (nome != null && !nome.isBlank()) {
+            produtos = produtos.stream()
+                    .filter(p -> p.getNome() != null &&
+                            p.getNome().toLowerCase().contains(nome.toLowerCase()))
+                    .toList();
+        }
+
+        return produtos;
+    }
+
     // Funções de admin
     // Registrar novo produto
     @PostMapping
@@ -94,76 +125,5 @@ public class ProdutoController {
     @PreAuthorize("hasRole('ADMIN')")
     public void deletar(@PathVariable Long id) {
         repository.deleteById(id);
-    }
-
-    // Histórico de movimentações de um produto
-    @GetMapping("/{id}/movimentacoes")
-    public List<MovimentacaoDTO> listarMovimentacoes(
-            @PathVariable Long id,
-            @RequestParam(required = false) String ordenacao,
-            @RequestParam(required = false) String tipo,
-            @RequestParam(required = false) String responsavel,
-            @RequestParam(required = false) String periodo) {
-
-        Produto produto = repository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Produto não encontrado: id=" + id));
-
-        List<MovimentacaoDTO> movimentacoes = new ArrayList<>();
-
-        // Converte entradas em DTOs
-        for (Entrada entrada : produto.getEntradas()) {
-            MovimentacaoDTO dto = new MovimentacaoDTO(
-                    entrada.getDataHora(),
-                    "ENTRADA",
-                    entrada.getResponsavel(),
-                    entrada.getQuantidadeAdicionada(),
-                    null);
-            movimentacoes.add(dto);
-        }
-
-        // Converte retiradas em DTOs
-        for (Retirada retirada : produto.getRetiradas()) {
-            MovimentacaoDTO dto = new MovimentacaoDTO(
-                    retirada.getDataHora(),
-                    "RETIRADA",
-                    retirada.getResponsavel(),
-                    retirada.getQuantidadeRetirada(),
-                    retirada.getDestino());
-            movimentacoes.add(dto);
-        }
-
-        // Filtro por tipo
-        if (tipo != null && !tipo.isBlank()) {
-            movimentacoes.removeIf(m -> !m.getTipo().equalsIgnoreCase(tipo));
-        }
-
-        // Filtro por responsável
-        if (responsavel != null && !responsavel.isBlank()) {
-            movimentacoes.removeIf(m -> m.getResponsavel() == null ||
-                    !m.getResponsavel().toLowerCase().contains(responsavel.toLowerCase()));
-        }
-
-        // Filtro por período
-        if (periodo != null) {
-            LocalDateTime agora = LocalDateTime.now();
-            LocalDateTime limite = switch (periodo.toLowerCase()) {
-                case "semana" -> agora.minusWeeks(1);
-                case "mes" -> agora.minusMonths(1);
-                case "ano" -> agora.minusYears(1);
-                default -> null;
-            };
-            if (limite != null) {
-                movimentacoes.removeIf(m -> m.getDataHora().isBefore(limite));
-            }
-        }
-
-        // Ordenação
-        if ("desc".equalsIgnoreCase(ordenacao)) {
-            movimentacoes.sort(Comparator.comparing(MovimentacaoDTO::getDataHora).reversed());
-        } else {
-            movimentacoes.sort(Comparator.comparing(MovimentacaoDTO::getDataHora));
-        }
-
-        return movimentacoes;
     }
 }
