@@ -1,69 +1,55 @@
 package com.almoxarifado.almoxarifado_backend.config;
 
+import com.almoxarifado.almoxarifado_backend.model.Usuario;
+import com.almoxarifado.almoxarifado_backend.repository.UsuarioRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
-import com.almoxarifado.almoxarifado_backend.model.Usuario;
-import com.almoxarifado.almoxarifado_backend.repository.UsuarioRepository;
-
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 @Configuration
 public class DataSeeder {
 
     @Bean
-    CommandLineRunner initDatabase(UsuarioRepository usuarioRepository, PasswordEncoder encoder) {
+    CommandLineRunner initDatabase(UsuarioRepository usuarioRepository, PasswordEncoder passwordEncoder) {
         return args -> {
-
-            // Usuário ADMIN
-            if (usuarioRepository.findByUsername("admin").isEmpty()) {
-                Usuario admin = new Usuario();
-                admin.setUsername("admin");
-                admin.setPassword(encoder.encode("admin123"));
-                admin.setRole("ADMIN");
-                usuarioRepository.save(admin);
-                System.out.println("Usuário ADMIN criado: admin/admin123");
-            }
-
-            // Usuário USER
-            if (usuarioRepository.findByUsername("user").isEmpty()) {
-                Usuario user = new Usuario();
-                user.setUsername("user");
-                user.setPassword(encoder.encode("user123"));
-                user.setRole("USER");
-                usuarioRepository.save(user);
-                System.out.println("Usuário USER criado: user/user123");
-            }
-
-            // Usuário ESTOQUISTA
-            if (usuarioRepository.findByUsername("estoquista").isEmpty()) {
-                Usuario estoquista = new Usuario();
-                estoquista.setUsername("estoquista");
-                estoquista.setPassword(encoder.encode("estoque456"));
-                estoquista.setRole("USER");
-                usuarioRepository.save(estoquista);
-                System.out.println("Usuário ESTOQUISTA criado: estoquista/estoque456");
-            }
-
-            // Usuário VISITANTE
-            if (usuarioRepository.findByUsername("visitante").isEmpty()) {
-                Usuario visitante = new Usuario();
-                visitante.setUsername("visitante");
-                visitante.setPassword(encoder.encode("visita789"));
-                visitante.setRole("USER");
-                usuarioRepository.save(visitante);
-                System.out.println("Usuário VISITANTE criado: visitante/visita789");
-            }
-
-            // Usuário MACIEL (ADMIN)
-            if (usuarioRepository.findByUsername("maciel").isEmpty()) {
+            if (usuarioRepository.count() == 0) {
+                // Maciel como ADMIN
                 Usuario maciel = new Usuario();
                 maciel.setUsername("maciel");
-                maciel.setPassword(encoder.encode("maciel123"));
+                maciel.setPassword(passwordEncoder.encode("maciel123"));
                 maciel.setRole("ADMIN");
                 usuarioRepository.save(maciel);
-                System.out.println("Usuário MACIEL criado: maciel/maciel123");
+
+                // Admin padrão
+                Usuario admin = new Usuario();
+                admin.setUsername("admin");
+                admin.setPassword(passwordEncoder.encode("admin123"));
+                admin.setRole("ADMIN");
+                usuarioRepository.save(admin);
+
+                // Usuário comum João
+                Usuario joao = new Usuario();
+                joao.setUsername("joao");
+                joao.setPassword(passwordEncoder.encode("joao123"));
+                joao.setRole("USER");
+                usuarioRepository.save(joao);
+
+                // Usuário comum Maria
+                Usuario maria = new Usuario();
+                maria.setUsername("maria");
+                maria.setPassword(passwordEncoder.encode("maria123"));
+                maria.setRole("USER");
+                usuarioRepository.save(maria);
+
+                // Usuário comum Pedro
+                Usuario pedro = new Usuario();
+                pedro.setUsername("pedro");
+                pedro.setPassword(passwordEncoder.encode("pedro123"));
+                pedro.setRole("USER");
+                usuarioRepository.save(pedro);
+
+                System.out.println("✅ Usuários de teste criados com sucesso!");
             }
         };
     }
