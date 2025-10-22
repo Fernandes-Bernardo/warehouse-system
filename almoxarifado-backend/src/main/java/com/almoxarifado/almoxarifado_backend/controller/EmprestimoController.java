@@ -6,6 +6,7 @@ import com.almoxarifado.almoxarifado_backend.model.Produto;
 import com.almoxarifado.almoxarifado_backend.repository.EmprestimoRepository;
 import com.almoxarifado.almoxarifado_backend.repository.ProdutoRepository;
 import org.springframework.data.domain.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -105,6 +106,7 @@ public class EmprestimoController {
         return new PageImpl<>(pageContent, pageable, emprestimos.size());
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public Emprestimo registrarEmprestimo(@RequestBody Emprestimo emprestimo) {
         Long produtoId = emprestimo.getProduto().getId();
