@@ -5,6 +5,7 @@ import com.almoxarifado.almoxarifado_backend.model.Produto;
 import com.almoxarifado.almoxarifado_backend.model.Retirada;
 import com.almoxarifado.almoxarifado_backend.repository.ProdutoRepository;
 import com.almoxarifado.almoxarifado_backend.repository.RetiradaRepository;
+import com.almoxarifado.almoxarifado_backend.service.EmailService;
 import com.almoxarifado.almoxarifado_backend.service.LogService;
 import org.springframework.data.domain.*;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -23,13 +24,16 @@ public class RetiradaController {
     private final RetiradaRepository retiradaRepository;
     private final ProdutoRepository produtoRepository;
     private final LogService logService;
+    private final EmailService emailService;
 
     public RetiradaController(RetiradaRepository retiradaRepository,
                               ProdutoRepository produtoRepository,
-                              LogService logService) {
+                              LogService logService,
+                              EmailService emailService) {
         this.retiradaRepository = retiradaRepository;
         this.produtoRepository = produtoRepository;
         this.logService = logService;
+        this.emailService = emailService;
     }
 
     @DeleteMapping("/limpar")
@@ -160,6 +164,11 @@ public class RetiradaController {
                         "' para '" + salva.getDestino() +
                         "' (responsável: " + salva.getResponsavel() + ")"
         );
+
+        // Enviar alerta se estoque estiver abaixo do mínimo
+        if (produto.getQuantidade() < produto.getEstoqueMinimo()) {
+            emailService.enviarAlertaEstoqueBaixo(produto);
+        }
 
         return salva;
     }
