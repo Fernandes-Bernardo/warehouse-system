@@ -3,6 +3,7 @@ package com.almoxarifado.almoxarifado_backend.controller;
 import com.almoxarifado.almoxarifado_backend.dto.ProdutoDTO;
 import com.almoxarifado.almoxarifado_backend.model.Produto;
 import com.almoxarifado.almoxarifado_backend.repository.ProdutoRepository;
+import com.almoxarifado.almoxarifado_backend.service.LogService;
 import org.springframework.data.domain.*;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -16,9 +17,11 @@ import java.util.stream.Collectors;
 public class ProdutoController {
 
     private final ProdutoRepository repository;
+    private final LogService logService;
 
-    public ProdutoController(ProdutoRepository repository) {
+    public ProdutoController(ProdutoRepository repository, LogService logService) {
         this.repository = repository;
+        this.logService = logService;
     }
 
     @DeleteMapping("/limpar")
@@ -110,19 +113,47 @@ public class ProdutoController {
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     public Produto registrar(@RequestBody Produto produto) {
-        return repository.save(produto);
+        Produto salvo = repository.save(produto);
+
+        logService.registrar(
+                "CADASTRO_PRODUTO",
+                "Produto",
+                salvo.getId(),
+                "Produto '" + salvo.getNome() + "' cadastrado com quantidade " + salvo.getQuantidade()
+        );
+
+        return salvo;
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public Produto atualizar(@PathVariable Long id, @RequestBody Produto produto) {
         produto.setId(id);
-        return repository.save(produto);
+        Produto atualizado = repository.save(produto);
+
+        logService.registrar(
+                "ATUALIZACAO_PRODUTO",
+                "Produto",
+                atualizado.getId(),
+                "Produto '" + atualizado.getNome() + "' atualizado com nova quantidade " + atualizado.getQuantidade()
+        );
+
+        return atualizado;
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public void deletar(@PathVariable Long id) {
+        Produto produto = repository.findById(id).orElse(null);
         repository.deleteById(id);
+
+        if (produto != null) {
+            logService.registrar(
+                    "EXCLUSAO_PRODUTO",
+                    "Produto",
+                    id,
+                    "Produto '" + produto.getNome() + "' foi excluído do sistema"
+            );
+        }
     }
 }

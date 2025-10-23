@@ -5,6 +5,7 @@ import com.almoxarifado.almoxarifado_backend.model.Emprestimo;
 import com.almoxarifado.almoxarifado_backend.model.Produto;
 import com.almoxarifado.almoxarifado_backend.repository.EmprestimoRepository;
 import com.almoxarifado.almoxarifado_backend.repository.ProdutoRepository;
+import com.almoxarifado.almoxarifado_backend.service.LogService;
 import org.springframework.data.domain.*;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -20,10 +21,14 @@ public class EmprestimoController {
 
     private final EmprestimoRepository emprestimoRepository;
     private final ProdutoRepository produtoRepository;
+    private final LogService logService;
 
-    public EmprestimoController(EmprestimoRepository emprestimoRepository, ProdutoRepository produtoRepository) {
+    public EmprestimoController(EmprestimoRepository emprestimoRepository,
+                                ProdutoRepository produtoRepository,
+                                LogService logService) {
         this.emprestimoRepository = emprestimoRepository;
         this.produtoRepository = produtoRepository;
+        this.logService = logService;
     }
 
     @GetMapping
@@ -53,7 +58,6 @@ public class EmprestimoController {
                 })
                 .collect(Collectors.toList());
 
-        // Filtros
         if (responsavel != null && !responsavel.isBlank()) {
             emprestimos.removeIf(e -> e.getResponsavel() == null ||
                     !e.getResponsavel().toLowerCase().contains(responsavel.toLowerCase()));
@@ -83,7 +87,6 @@ public class EmprestimoController {
             emprestimos.removeIf(e -> e.getDataHora().isBefore(inicio) || e.getDataHora().isAfter(fim));
         }
 
-        // Ordenação via Pageable
         if (pageable.getSort().isSorted()) {
             for (Sort.Order order : pageable.getSort()) {
                 Comparator<EmprestimoDTO> comparator = switch (order.getProperty()) {
@@ -98,7 +101,6 @@ public class EmprestimoController {
             }
         }
 
-        // Paginação manual
         int start = (int) pageable.getOffset();
         int end = Math.min(start + pageable.getPageSize(), emprestimos.size());
         List<EmprestimoDTO> pageContent = emprestimos.subList(start, end);
@@ -116,6 +118,18 @@ public class EmprestimoController {
         emprestimo.setProduto(produto);
         emprestimo.setDataHora(LocalDateTime.now());
 
-        return emprestimoRepository.save(emprestimo);
+        Emprestimo salvo = emprestimoRepository.save(emprestimo);
+
+        logService.registrar(
+                "EMPRESTIMO",
+                "Emprestimo",
+                salvo.getId(),
+                "Empréstimo de " + salvo.getQuantidadeEmprestada() +
+                        " unidades do produto '" + produto.getNome() +
+                        "' para '" + salvo.getDestino() +
+                        "' (responsável: " + salvo.getResponsavel() + ")"
+        );
+
+        return salvo;
     }
 }

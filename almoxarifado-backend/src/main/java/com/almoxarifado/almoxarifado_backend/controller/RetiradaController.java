@@ -5,6 +5,7 @@ import com.almoxarifado.almoxarifado_backend.model.Produto;
 import com.almoxarifado.almoxarifado_backend.model.Retirada;
 import com.almoxarifado.almoxarifado_backend.repository.ProdutoRepository;
 import com.almoxarifado.almoxarifado_backend.repository.RetiradaRepository;
+import com.almoxarifado.almoxarifado_backend.service.LogService;
 import org.springframework.data.domain.*;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,10 +22,14 @@ public class RetiradaController {
 
     private final RetiradaRepository retiradaRepository;
     private final ProdutoRepository produtoRepository;
+    private final LogService logService;
 
-    public RetiradaController(RetiradaRepository retiradaRepository, ProdutoRepository produtoRepository) {
+    public RetiradaController(RetiradaRepository retiradaRepository,
+                              ProdutoRepository produtoRepository,
+                              LogService logService) {
         this.retiradaRepository = retiradaRepository;
         this.produtoRepository = produtoRepository;
+        this.logService = logService;
     }
 
     @DeleteMapping("/limpar")
@@ -144,6 +149,18 @@ public class RetiradaController {
         retirada.setProduto(produto);
         retirada.setDataHora(LocalDateTime.now());
 
-        return retiradaRepository.save(retirada);
+        Retirada salva = retiradaRepository.save(retirada);
+
+        logService.registrar(
+                "RETIRADA_ESTOQUE",
+                "Retirada",
+                salva.getId(),
+                "Retirada de " + salva.getQuantidadeRetirada() +
+                        " unidades do produto '" + produto.getNome() +
+                        "' para '" + salva.getDestino() +
+                        "' (responsável: " + salva.getResponsavel() + ")"
+        );
+
+        return salva;
     }
 }
