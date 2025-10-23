@@ -7,6 +7,7 @@ import com.almoxarifado.almoxarifado_backend.repository.ProdutoRepository;
 import com.almoxarifado.almoxarifado_backend.repository.RetiradaRepository;
 import com.almoxarifado.almoxarifado_backend.service.EmailService;
 import com.almoxarifado.almoxarifado_backend.service.LogService;
+import com.almoxarifado.almoxarifado_backend.service.MovimentacaoContadorService;
 import org.springframework.data.domain.*;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,15 +26,18 @@ public class RetiradaController {
     private final ProdutoRepository produtoRepository;
     private final LogService logService;
     private final EmailService emailService;
+    private final MovimentacaoContadorService movimentacaoContadorService;
 
     public RetiradaController(RetiradaRepository retiradaRepository,
                               ProdutoRepository produtoRepository,
                               LogService logService,
-                              EmailService emailService) {
+                              EmailService emailService,
+                              MovimentacaoContadorService movimentacaoContadorService) {
         this.retiradaRepository = retiradaRepository;
         this.produtoRepository = produtoRepository;
         this.logService = logService;
         this.emailService = emailService;
+        this.movimentacaoContadorService = movimentacaoContadorService;
     }
 
     @DeleteMapping("/limpar")
@@ -164,6 +168,9 @@ public class RetiradaController {
                         "' para '" + salva.getDestino() +
                         "' (responsável: " + salva.getResponsavel() + ")"
         );
+
+        // Atualiza o contador de movimentações
+        movimentacaoContadorService.registrarMovimentacao(produto);
 
         // Enviar alerta se estoque estiver abaixo do mínimo
         if (produto.getQuantidade() < produto.getEstoqueMinimo()) {

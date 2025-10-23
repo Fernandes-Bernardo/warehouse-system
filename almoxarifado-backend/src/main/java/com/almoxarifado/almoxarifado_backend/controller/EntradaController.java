@@ -6,6 +6,7 @@ import com.almoxarifado.almoxarifado_backend.model.Produto;
 import com.almoxarifado.almoxarifado_backend.repository.EntradaRepository;
 import com.almoxarifado.almoxarifado_backend.repository.ProdutoRepository;
 import com.almoxarifado.almoxarifado_backend.service.LogService;
+import com.almoxarifado.almoxarifado_backend.service.MovimentacaoContadorService;
 import org.springframework.data.domain.*;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,13 +24,16 @@ public class EntradaController {
     private final EntradaRepository entradaRepository;
     private final ProdutoRepository produtoRepository;
     private final LogService logService;
+    private final MovimentacaoContadorService contadorService;
 
     public EntradaController(EntradaRepository entradaRepository,
                              ProdutoRepository produtoRepository,
-                             LogService logService) {
+                             LogService logService,
+                             MovimentacaoContadorService contadorService) {
         this.entradaRepository = entradaRepository;
         this.produtoRepository = produtoRepository;
         this.logService = logService;
+        this.contadorService = contadorService;
     }
 
     @DeleteMapping("/limpar")
@@ -130,6 +134,8 @@ public class EntradaController {
         entrada.setProduto(produto);
 
         Entrada salva = entradaRepository.save(entrada);
+
+        contadorService.registrarMovimentacao(produto);
 
         logService.registrar(
                 "ENTRADA_ESTOQUE",

@@ -1,12 +1,17 @@
 package com.almoxarifado.almoxarifado_backend.controller;
 
 import com.almoxarifado.almoxarifado_backend.dto.MovimentacaoDTO;
+import com.almoxarifado.almoxarifado_backend.dto.NovaEntradaDTO;
+import com.almoxarifado.almoxarifado_backend.dto.NovaRetiradaDTO;
 import com.almoxarifado.almoxarifado_backend.dto.ResumoProdutoDTO;
 import com.almoxarifado.almoxarifado_backend.model.Entrada;
 import com.almoxarifado.almoxarifado_backend.model.Produto;
 import com.almoxarifado.almoxarifado_backend.model.Retirada;
 import com.almoxarifado.almoxarifado_backend.repository.ProdutoRepository;
+import com.almoxarifado.almoxarifado_backend.service.MovimentacaoContadorService;
 import org.springframework.data.domain.*;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -17,10 +22,52 @@ import java.util.*;
 public class MovimentacaoController {
 
     private final ProdutoRepository produtoRepository;
+    private final MovimentacaoContadorService contadorService;
 
-    public MovimentacaoController(ProdutoRepository produtoRepository) {
+    public MovimentacaoController(ProdutoRepository produtoRepository,
+                                  MovimentacaoContadorService contadorService) {
         this.produtoRepository = produtoRepository;
+        this.contadorService = contadorService;
     }
+
+    // ---------- NOVOS ENDPOINTS ADICIONADOS ----------
+    @PostMapping("/entrada")
+    public ResponseEntity<Void> registrarEntrada(@RequestBody NovaEntradaDTO entradaDTO) {
+        Produto produto = produtoRepository.findById(entradaDTO.getProdutoId())
+                .orElseThrow(() -> new RuntimeException("Produto não encontrado"));
+
+        Entrada entrada = new Entrada();
+        entrada.setDataHora(LocalDateTime.now());
+        entrada.setResponsavel(entradaDTO.getResponsavel());
+        entrada.setQuantidadeAdicionada(entradaDTO.getQuantidade());
+        produto.getEntradas().add(entrada);
+
+        produto.setQuantidade(produto.getQuantidade() + entradaDTO.getQuantidade());
+        produtoRepository.save(produto);
+
+        contadorService.registrarMovimentacao(produto);
+        return ResponseEntity.status(HttpStatus.CREATED).build();
+    }
+
+    @PostMapping("/retirada")
+    public ResponseEntity<Void> registrarRetirada(@RequestBody NovaRetiradaDTO retiradaDTO) {
+        Produto produto = produtoRepository.findById(retiradaDTO.getProdutoId())
+                .orElseThrow(() -> new RuntimeException("Produto não encontrado"));
+
+        Retirada retirada = new Retirada();
+        retirada.setDataHora(LocalDateTime.now());
+        retirada.setResponsavel(retiradaDTO.getResponsavel());
+        retirada.setDestino(retiradaDTO.getDestino());
+        retirada.setQuantidadeRetirada(retiradaDTO.getQuantidade());
+        produto.getRetiradas().add(retirada);
+
+        produto.setQuantidade(produto.getQuantidade() - retiradaDTO.getQuantidade());
+        produtoRepository.save(produto);
+
+        contadorService.registrarMovimentacao(produto);
+        return ResponseEntity.status(HttpStatus.CREATED).build();
+    }
+    // -------------------------------------------------
 
     @GetMapping
     public Page<MovimentacaoDTO> listarMovimentacoes(
@@ -198,6 +245,6 @@ public class MovimentacaoController {
         int end = Math.min(start + pageable.getPageSize(), resumo.size());
         List<ResumoProdutoDTO> pageContent = resumo.subList(start, end);
 
-        return new PageImpl<>(pageContent, pageable, resumo.size()); //
+        return new PageImpl<>(pageContent, pageable, resumo.size());
     }
 }

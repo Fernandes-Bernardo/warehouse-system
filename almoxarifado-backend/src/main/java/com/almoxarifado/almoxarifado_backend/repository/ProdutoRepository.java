@@ -2,21 +2,21 @@ package com.almoxarifado.almoxarifado_backend.repository;
 
 import java.util.List;
 
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.stereotype.Repository;
+
 import com.almoxarifado.almoxarifado_backend.model.Produto;
 
-// JpaRepository<Entidade, TipoDaChavePrimaria>
+@Repository
 public interface ProdutoRepository extends JpaRepository<Produto, Long> {
-    
-    // Buscar por nome
+
     List<Produto> findByNomeContainingIgnoreCase(String nome);
-
-     // Buscar por categoria (ignora maiúsculas/minúsculas)
     List<Produto> findByCategoriaIgnoreCase(String categoria);
-
-    // Buscar por prateleira
     List<Produto> findByPrateleiraIgnoreCase(String prateleira);
-
-    // Buscar produtos com estoque baixo
     List<Produto> findByQuantidadeLessThanEqual(Integer quantidade);
+
+    @Query("SELECT p FROM Produto p JOIN MovimentacaoContador m ON p = m.produto ORDER BY m.totalMovimentacoes DESC")
+    List<Produto> findMaisMovimentados(Pageable pageable);
 }
