@@ -1,16 +1,14 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import Login from './components/Login';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Produtos from './pages/Produtos';
+import Login from './pages/Login';
 
-function App() {
+export default function App() {
   return (
-    <BrowserRouter>
+    <Router>
       <Routes>
         <Route path="/" element={<Login />} />
         <Route path="/produtos" element={<Produtos />} />
       </Routes>
-    </BrowserRouter>
+    </Router>
   );
 }
-
-export default App;
