@@ -4,11 +4,13 @@ import {
   ChatBubbleBottomCenterTextIcon,
   ShieldCheckIcon,
   PlusIcon,
+  TrashIcon, // ícone de lixeira
 } from '@heroicons/react/24/solid';
 import { useEffect, useState } from 'react';
-import TabelaHeader from '../components/TabelaHeader';
 import Navbar from '../components/Navbar';
+import TabelaHeader from '../components/TabelaHeader';
 import { isAdmin } from '../utils/authUtils';
+import Footer from '../components/Footer';
 
 export default function Produtos() {
   const [produtos, setProdutos] = useState([]);
@@ -59,7 +61,6 @@ export default function Produtos() {
     }
   }
 
-  // Handlers do formulário
   function handleChange(e) {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
@@ -68,12 +69,11 @@ export default function Produtos() {
   async function handleSubmit(e) {
     e.preventDefault();
     try {
-      const token = localStorage.getItem('token'); // JWT salvo no login
-      const response = await fetch("http://localhost:8080/api/v1/produtos", {
-        method: "POST",
+      const response = await fetch('http://localhost:8080/api/v1/produtos', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('authToken')}`,
         },
         body: JSON.stringify({
           nome: form.nome,
@@ -109,6 +109,28 @@ export default function Produtos() {
     }
   }
 
+  async function handleDelete(id) {
+    if (!window.confirm("Tem certeza que deseja excluir este produto?")) return;
+
+    try {
+      const response = await fetch(`http://localhost:8080/api/v1/produtos/${id}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('authToken')}`,
+        },
+      });
+
+      if (response.ok) {
+        alert("Produto excluído com sucesso!");
+        buscarProdutos();
+      } else {
+        alert("Erro ao excluir produto. Verifique se você está logado como ADMIN.");
+      }
+    } catch (err) {
+      console.error("Erro ao excluir produto:", err);
+    }
+  }
+
   function openModal() {
     setModalOpen(true);
     setClosing(false);
@@ -124,7 +146,6 @@ export default function Produtos() {
       setClosing(false);
     }
   }
-
   return (
     <div className="min-h-screen bg-gradient-to-r from-preto via-vermelhoEscuro/40 to-rosaClaro/20 text-white flex flex-col">
       <Navbar />
@@ -167,10 +188,7 @@ export default function Produtos() {
             />
           </div>
           <button
-            onClick={() => {
-              setPagina(0);
-              buscarProdutos();
-            }}
+            onClick={() => { setPagina(0); buscarProdutos(); }}
             className="mt-4 bg-vermelho text-white px-4 py-2 rounded-md hover:bg-vermelhoEscuro transition"
           >
             Aplicar filtros
@@ -181,16 +199,23 @@ export default function Produtos() {
       {/* Tabela */}
       <div className="flex-grow p-4 sm:p-6 md:p-8 max-w-8xl mx-auto w-[95%] animate-fade-in">
         <div className="bg-white rounded-xl shadow-xl border border-vermelhoEscuro text-preto px-4 sm:px-8 py-6 w-full min-h-[70vh]">
-          <div className="-mx-8 -mt-6 overflow-hidden rounded-t-xl shadow-md">
-            <TabelaHeader />
-          </div>
-
           <div className="overflow-x-auto">
             <table className="w-full table-fixed text-sm border-collapse">
+              <thead>
+                <tr className="bg-red-800 text-white">
+                  <th className="px-4 py-3 text-left">ID</th>
+                  <th className="px-4 py-3 text-left">Nome</th>
+                  <th className="px-4 py-3 text-left">Categoria</th>
+                  <th className="px-4 py-3 text-left">Prateleira</th>
+                  <th className="px-4 py-3 text-left">Origem</th>
+                  <th className="px-4 py-3 text-left">Quantidade</th>
+                  {isAdmin() && <th className="px-4 py-3 text-center">Ações</th>}
+                </tr>
+              </thead>
               <tbody>
                 {produtos.length === 0 ? (
                   <tr>
-                    <td colSpan="6" className="px-6 py-4 text-center text-vermelhoClaro">
+                    <td colSpan={isAdmin() ? 7 : 6} className="px-6 py-4 text-center text-vermelhoClaro">
                       Nenhum produto encontrado.
                     </td>
                   </tr>
@@ -198,8 +223,7 @@ export default function Produtos() {
                   produtos.map((produto, index) => (
                     <tr
                       key={produto.id}
-                      className={`${index % 2 === 0 ? 'bg-white' : 'bg-rosaClaro/30'
-                        } hover:bg-rosaClaro/50 transition`}
+                      className={`${index % 2 === 0 ? 'bg-white' : 'bg-rosaClaro/30'} hover:bg-rosaClaro/50 transition`}
                     >
                       <td className="px-4 py-4 w-24">{produto.id}</td>
                       <td className="px-4 py-4 w-48">{produto.nome}</td>
@@ -207,6 +231,17 @@ export default function Produtos() {
                       <td className="px-4 py-4 w-32">{produto.prateleira}</td>
                       <td className="px-4 py-4 w-32">{produto.origem}</td>
                       <td className="px-4 py-4 w-24">{produto.quantidade}</td>
+                      {isAdmin() && (
+                        <td className="px-4 py-4 w-16 text-center">
+                          <button
+                            onClick={() => handleDelete(produto.id)}
+                            className="text-red-600 hover:text-red-800 transition"
+                            title="Excluir produto"
+                          >
+                            <TrashIcon className="h-5 w-5" />
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   ))
                 )}
@@ -221,8 +256,8 @@ export default function Produtos() {
                 key={i}
                 onClick={() => setPagina(i)}
                 className={`px-3 py-2 rounded-md border ${pagina === i
-                  ? 'bg-vermelhoEscuro text-white border-vermelho'
-                  : 'bg-white text-vermelho border-vermelhoClaro hover:bg-rosaClaro'
+                    ? 'bg-vermelhoEscuro text-white border-vermelho'
+                    : 'bg-white text-vermelho border-vermelhoClaro hover:bg-rosaClaro'
                   }`}
               >
                 {i + 1}
@@ -232,19 +267,7 @@ export default function Produtos() {
         </div>
       </div>
 
-      {/* Footer */}
-      <footer className="bg-zinc-900 py-8 text-center text-sm text-rosaClaro/70 mt-10">
-        <div className="flex justify-center gap-6 mb-4">
-          <HeartIcon className="h-5 w-5 text-rosaClaro/70" />
-          <ChatBubbleBottomCenterTextIcon className="h-5 w-5 text-rosaClaro/70" />
-          <ShieldCheckIcon className="h-5 w-5 text-rosaClaro/70" />
-        </div>
-        <p className="text-xs tracking-wide">
-          © 2025 Almoxarifado — Desenvolvido por <span className="text-rosaClaro">Nexus</span>
-        </p>
-      </footer>
-
-      {/* Botão flutuante de adicionar produto */}
+      {/* Botão flutuante de adicionar produto (somente ADMIN) */}
       {isAdmin() && (
         <button
           onClick={openModal}
@@ -387,6 +410,7 @@ export default function Produtos() {
           </div>
         </div>
       )}
+      <Footer />
     </div>
   );
 }
