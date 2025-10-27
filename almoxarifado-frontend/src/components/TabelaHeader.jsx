@@ -11,17 +11,26 @@ export default function TabelaHeader() {
   ];
 
   return (
-    <table className="w-full border-collapse shadow-md">
-      <thead className="bg-vermelhoEscuro text-white text-sm font-semibold uppercase tracking-wide shadow-md">
-        <tr>
-          {colunas.map((coluna, index) => (
-            <th key={index} className="px-4 py-3 text-left whitespace-nowrap">
-              {coluna.icone || null}
-              {coluna.nome}
-            </th>
-          ))}
-        </tr>
-      </thead>
-    </table>
+    <thead className="bg-vermelhoEscuro text-white text-sm font-semibold uppercase tracking-wide shadow-md">
+      <tr>
+        {colunas.map((coluna, index) => (
+          <th
+            key={index}
+            className={`px-4 py-3 text-left whitespace-nowrap ${
+              index === 0
+                ? 'w-24'
+                : index === 1
+                ? 'w-48'
+                : index === 2 || index === 3 || index === 4
+                ? 'w-32'
+                : 'w-24'
+            }`}
+          >
+            {coluna.icone || null}
+            {coluna.nome}
+          </th>
+        ))}
+      </tr>
+    </thead>
   );
 }
